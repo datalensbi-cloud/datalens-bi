@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { Upload, FileSpreadsheet, Sparkles } from 'lucide-react';
 import { useAuth } from '@/features/auth/useAuth';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const fullName = (user?.user_metadata?.full_name as string | undefined) ?? null;
   const greeting = fullName ? fullName.split(' ')[0] : 'there';
@@ -31,7 +29,7 @@ export function DashboardPage() {
               Drag in a spreadsheet to preview the data, detect column types, and build your first
               chart in under 3 minutes.
             </p>
-            <Button className="mt-6" disabled onClick={() => navigate('/files')}>
+            <Button className="mt-6" disabled>
               <Upload className="mr-2 h-4 w-4" />
               Upload your first file
             </Button>

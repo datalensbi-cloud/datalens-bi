@@ -79,7 +79,7 @@ export function ProfileDropdown() {
             Theme
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+            <DropdownMenuRadioGroup value={theme ?? 'system'} onValueChange={setTheme}>
               <DropdownMenuRadioItem value="light">
                 <Sun className="mr-2 h-4 w-4" />
                 Light
