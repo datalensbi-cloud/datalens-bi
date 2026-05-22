@@ -9,9 +9,14 @@ export function DashboardPage() {
   const navigate = useNavigate();
 
   async function handleSignOut() {
-    await signOut();
-    toast.success('Signed out');
-    navigate('/login', { replace: true });
+    try {
+      await signOut();
+      toast.success('Signed out');
+      navigate('/login', { replace: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Please try again.';
+      toast.error(`Could not sign out. ${msg}`);
+    }
   }
 
   return (

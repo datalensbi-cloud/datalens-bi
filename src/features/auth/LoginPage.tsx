@@ -124,6 +124,9 @@ export function LoginPage() {
                     >
                       {passwordForm.formState.isSubmitting ? 'Signing in…' : 'Sign in'}
                     </Button>
+                    <p className="text-center text-xs text-muted-foreground">
+                      Forgot password? Use the <span className="font-medium">Magic link</span> tab.
+                    </p>
                   </form>
                 </Form>
               </TabsContent>

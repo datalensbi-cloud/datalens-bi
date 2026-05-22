@@ -25,7 +25,7 @@ export function SignupPage() {
   });
 
   async function onSubmit(values: SignupInput) {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -33,10 +33,25 @@ export function SignupPage() {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+
     if (error) {
-      toast.error(error.message);
+      const msg = error.message.toLowerCase();
+      if (msg.includes('already registered') || msg.includes('already been registered')) {
+        toast.error('That email is already registered. Try signing in instead.');
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
+
+    // When email confirmation is required (production), Supabase returns
+    // a user but no session. We route to /login with a check-inbox hint.
+    if (!data.session) {
+      toast.success('Account created. Check your inbox to confirm your email.');
+      navigate('/login', { replace: true });
+      return;
+    }
+
     toast.success('Account created — welcome to DataLens!');
     navigate('/dashboard', { replace: true });
   }
