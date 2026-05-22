@@ -4,7 +4,15 @@ import { ProtectedRoute, PublicOnlyRoute } from '@/features/auth/ProtectedRoute'
 import { LoginPage } from '@/features/auth/LoginPage';
 import { SignupPage } from '@/features/auth/SignupPage';
 import { AuthCallbackPage } from '@/features/auth/AuthCallbackPage';
+
+import { AppLayout } from './AppLayout';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { FilesPage } from '@/features/files/FilesPage';
+import { ChartsPage } from '@/features/charts/ChartsPage';
+import { TemplatesPage } from '@/features/templates/TemplatesPage';
+import { WorkspacesPage } from '@/features/workspaces/WorkspacesPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
+import { NotFoundPage } from '@/components/NotFoundPage';
 
 export const router = createBrowserRouter([
   {
@@ -24,17 +32,22 @@ export const router = createBrowserRouter([
   },
   {
     element: <ProtectedRoute />,
-    children: [{ path: '/dashboard', element: <DashboardPage /> }],
+    children: [
+      {
+        element: <AppLayout />,
+        children: [
+          { path: '/dashboard', element: <DashboardPage /> },
+          { path: '/files', element: <FilesPage /> },
+          { path: '/charts', element: <ChartsPage /> },
+          { path: '/templates', element: <TemplatesPage /> },
+          { path: '/workspaces', element: <WorkspacesPage /> },
+          { path: '/settings', element: <SettingsPage /> },
+        ],
+      },
+    ],
   },
   {
     path: '*',
-    element: (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold">404</h1>
-          <p className="text-sm text-muted-foreground">Page not found</p>
-        </div>
-      </div>
-    ),
+    element: <NotFoundPage />,
   },
 ]);

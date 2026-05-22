@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './useAuth';
+import { FullPageSpinner } from '@/components/Spinner';
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -11,9 +12,5 @@ export function AuthCallbackPage() {
     navigate(session ? '/dashboard' : '/login', { replace: true });
   }, [session, loading, navigate]);
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-sm text-muted-foreground">Signing you in…</div>
-    </div>
-  );
+  return <FullPageSpinner label="Signing you in…" />;
 }
