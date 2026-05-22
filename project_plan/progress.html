@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataLens BI — 30-Day Build Tracker</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f8fafc;--card:#ffffff;--border:#e2e8f0;--border-strong:#cbd5e1;
+    --text:#0f172a;--text-2:#475569;--text-3:#94a3b8;
+    --p1:#4f46e5;--p1-bg:#eef2ff;--p1-text:#3730a3;
+    --p2:#06b6d4;--p2-bg:#ecfeff;--p2-text:#0e7490;
+    --p3:#10b981;--p3-bg:#f0fdf4;--p3-text:#166534;
+    --p4:#f59e0b;--p4-bg:#fffbeb;--p4-text:#92400e;
+    --green:#10b981;--amber:#f59e0b;--red:#ef4444;--gray:#94a3b8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f172a;--card:#1e293b;--border:#334155;--border-strong:#475569;
+      --text:#f1f5f9;--text-2:#cbd5e1;--text-3:#94a3b8;
+      --p1-bg:#1e1b4b;--p1-text:#a5b4fc;
+      --p2-bg:#083344;--p2-text:#67e8f9;
+      --p3-bg:#052e16;--p3-text:#86efac;
+      --p4-bg:#451a03;--p4-text:#fcd34d;
+    }
+  }
+  html,body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.5}
+  .container{max-width:1280px;margin:0 auto;padding:24px}
+
+  /* Header */
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap}
+  .title-block h1{font-size:22px;font-weight:600;margin-bottom:4px}
+  .title-block p{font-size:13px;color:var(--text-2)}
+  .header-actions{display:flex;gap:8px}
+  .btn{background:var(--card);border:1px solid var(--border-strong);color:var(--text);font-size:13px;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:500;transition:.15s}
+  .btn:hover{background:var(--bg);border-color:var(--text-3)}
+  .btn-danger:hover{background:#fef2f2;color:var(--red);border-color:var(--red)}
+  @media (prefers-color-scheme: dark){.btn-danger:hover{background:#450a0a}}
+
+  /* Stats row */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px}
+  .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-2);margin-bottom:6px;font-weight:500}
+  .stat-value{font-size:24px;font-weight:600;line-height:1.1}
+  .stat-sub{font-size:12px;color:var(--text-2);margin-top:4px}
+  .stat .bar{height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+  .stat .bar-fill{height:100%;border-radius:2px;transition:width .3s}
+
+  /* Phase tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+  .tab{background:var(--card);border:1px solid var(--border-strong);color:var(--text-2);font-size:13px;padding:8px 16px;border-radius:20px;cursor:pointer;font-weight:500;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:8px}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:#fff;border-color:transparent}
+  .tab.active.p1{background:var(--p1)}
+  .tab.active.p2{background:var(--p2)}
+  .tab.active.p3{background:var(--p3)}
+  .tab.active.p4{background:var(--p4)}
+  .tab.active.all{background:var(--text)}
+  .tab .count{font-size:11px;background:rgba(255,255,255,.25);padding:1px 6px;border-radius:8px}
+  .tab:not(.active) .count{background:var(--border)}
+
+  /* Phase banner */
+  .phase-banner{border-radius:10px;padding:18px 20px;margin-bottom:16px;border-left:4px solid;background:var(--card);border:1px solid var(--border)}
+  .phase-banner.p1{border-left-color:var(--p1)}
+  .phase-banner.p2{border-left-color:var(--p2)}
+  .phase-banner.p3{border-left-color:var(--p3)}
+  .phase-banner.p4{border-left-color:var(--p4)}
+  .pb-tag{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .pb-tag.p1{color:var(--p1)}.pb-tag.p2{color:var(--p2)}.pb-tag.p3{color:var(--p3)}.pb-tag.p4{color:var(--p4)}
+  .pb-title{font-size:17px;font-weight:600;margin-bottom:6px}
+  .pb-sub{font-size:13px;color:var(--text-2);line-height:1.6}
+
+  /* Day grid */
+  .days{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;margin-bottom:24px}
+  .day{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:3px solid;transition:.15s;cursor:pointer}
+  .day:hover{border-color:var(--border-strong);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.04)}
+  .day.expanded{border-color:var(--border-strong);box-shadow:0 4px 16px rgba(0,0,0,.06)}
+  .day.p1{border-left-color:var(--p1)}
+  .day.p2{border-left-color:var(--p2)}
+  .day.p3{border-left-color:var(--p3)}
+  .day.p4{border-left-color:var(--p4)}
+  .day-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+  .day-num{font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em}
+  .day-title{font-size:14px;font-weight:600;margin-top:2px}
+  .day-progress{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .day-progress-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+  .day-progress-fill{height:100%;border-radius:3px;background:var(--green);transition:width .3s}
+  .day-progress-text{font-size:11px;color:var(--text-2);font-weight:500;font-variant-numeric:tabular-nums}
+
+  /* Status dropdown */
+  .status-btn{font-size:11px;font-weight:600;padding:4px 10px;border-radius:12px;border:1px solid;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+  .status-btn:hover{filter:brightness(.95)}
+  .status-not_started{background:#f1f5f9;color:#475569;border-color:#cbd5e1}
+  .status-in_progress{background:#fffbeb;color:#92400e;border-color:#fcd34d}
+  .status-done{background:#f0fdf4;color:#166534;border-color:#86efac}
+  .status-blocked{background:#fef2f2;color:#991b1b;border-color:#fca5a5}
+  .status-deferred{background:#f5f3ff;color:#6b21a8;border-color:#c4b5fd}
+  @media (prefers-color-scheme: dark){
+    .status-not_started{background:#1e293b;color:#cbd5e1;border-color:#475569}
+    .status-in_progress{background:#451a03;color:#fcd34d;border-color:#92400e}
+    .status-done{background:#052e16;color:#86efac;border-color:#166534}
+    .status-blocked{background:#450a0a;color:#fca5a5;border-color:#991b1b}
+    .status-deferred{background:#2e1065;color:#c4b5fd;border-color:#6b21a8}
+  }
+  .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+  /* Expanded day detail */
+  .day-detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:none}
+  .day.expanded .day-detail{display:block}
+  .detail-section{margin-bottom:14px}
+  .detail-section h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-2);margin-bottom:8px;font-weight:600}
+  .task{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:4px;transition:.1s;cursor:pointer}
+  .task:hover{background:var(--bg)}
+  .task input[type=checkbox]{margin-top:3px;cursor:pointer;width:14px;height:14px;flex-shrink:0;accent-color:var(--green)}
+  .task label{font-size:13px;color:var(--text);cursor:pointer;flex:1;line-height:1.45}
+  .task.done label{color:var(--text-3);text-decoration:line-through}
+  .deliverable{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-top:8px}
+  .deliverable-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px}
+  .deliverable-text{font-size:13px;color:var(--text);font-weight:500}
+  .notes-area{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);resize:vertical;min-height:60px;margin-top:8px}
+  .notes-area:focus{outline:none;border-color:var(--text-3)}
+
+  /* Status menu (dropdown) */
+  .status-menu-wrap{position:relative}
+  .status-menu{position:absolute;top:calc(100% + 4px);right:0;background:var(--card);border:1px solid var(--border-strong);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:10;min-width:140px;display:none}
+  .status-menu.open{display:block}
+  .status-menu-item{display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:13px;cursor:pointer;border-radius:4px;color:var(--text)}
+  .status-menu-item:hover{background:var(--bg)}
+
+  /* Footer sections */
+  .footer-sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:32px}
+  @media (max-width:768px){.footer-sections{grid-template-columns:1fr}}
+  .section-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px}
+  .section-card h2{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text)}
+  .log-row{display:grid;grid-template-columns:90px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+  .log-row:last-child{border-bottom:none}
+  .log-date{color:var(--text-3);font-variant-numeric:tabular-nums}
+  .log-text strong{color:var(--text);font-weight:600;display:block;margin-bottom:2px}
+  .log-text span{color:var(--text-2)}
+  .backlog-item{padding:6px 0;font-size:12px;color:var(--text-2);border-bottom:1px solid var(--border)}
+  .backlog-item:last-child{border-bottom:none}
+
+  /* Filter row */
+  .filters{display:flex;gap:8px;align-items:center;margin-bottom:16px;font-size:13px}
+  .filter-label{color:var(--text-2);font-weight:500}
+  .filter-pill{background:var(--card);border:1px solid var(--border-strong);padding:5px 12px;border-radius:14px;cursor:pointer;font-size:12px;color:var(--text-2);font-family:inherit;transition:.15s}
+  .filter-pill:hover{color:var(--text)}
+  .filter-pill.active{background:var(--text);color:var(--card);border-color:var(--text)}
+
+  /* Toast */
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--card);padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="title-block">
+      <h1>DataLens BI — 30-Day Build Tracker</h1>
+      <p>Started 2026-05-21 · Target launch 2026-06-19 · Public SaaS</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="exportJSON()">Export progress</button>
+      <button class="btn" onclick="importJSON()">Import</button>
+      <button class="btn btn-danger" onclick="resetAll()">Reset</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="phase-banner"></div>
+
+  <div class="filters">
+    <span class="filter-label">Show:</span>
+    <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">All</button>
+    <button class="filter-pill" data-filter="not_started" onclick="setFilter('not_started')">Not started</button>
+    <button class="filter-pill" data-filter="in_progress" onclick="setFilter('in_progress')">In progress</button>
+    <button class="filter-pill" data-filter="done" onclick="setFilter('done')">Done</button>
+    <button class="filter-pill" data-filter="blocked" onclick="setFilter('blocked')">Blocked</button>
+  </div>
+
+  <div class="days" id="days"></div>
+
+  <div class="footer-sections">
+    <div class="section-card">
+      <h2>Decisions log</h2>
+      <div id="decisions"></div>
+    </div>
+    <div class="section-card">
+      <h2>Backlog (post-launch)</h2>
+      <div id="backlog"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ DATA ============
+const PLAN = [
+  // PHASE 1 — Foundation
+  { phase:1, day:1, title:"Project skeleton & auth",
+    build:["Init Vite + React + TypeScript + Tailwind","Install shadcn/ui base components","Create Supabase project, save URL + anon key","Supabase client wrapper in src/lib/supabase.ts","Schema migration: profiles table with RLS","Login + Signup pages (email/password)","Protected route wrapper (redirect to /login)","GitHub repo created, first commit","Connect to Vercel, first deploy lands"],
+    verify:["Signup creates a profile row automatically","Login persists across refresh","Logged-out user hitting / redirects to /login","Live Vercel preview URL works"],
+    deliverable:"Live URL with working signup/login" },
+  { phase:1, day:2, title:"App shell & navigation",
+    build:["Top-bar navigation (logo, profile menu)","Sidebar: Files, Workspaces, Charts, Templates, Settings","Dashboard landing with empty state CTA","Profile menu with logout","Dark mode toggle (Tailwind dark:)","Toast system (shadcn sonner)","404 and error pages"],
+    verify:["Navigation works across all routes","Dark mode preference persists","Logout clears session and redirects"],
+    deliverable:"Polished app shell" },
+  { phase:1, day:3, title:"File upload & storage",
+    build:["Upload component: drag-drop + click","Accept .csv and .xlsx (50MB cap)","Parse CSV with PapaParse (worker mode)","Parse XLSX with SheetJS","Upload raw to Supabase Storage","Store parsed JSON to datasets table","Upload progress indicator","File history list with metadata"],
+    verify:["50k-row CSV uploads without UI freeze","XLSX with multiple sheets handled","Upload history persists across sessions","Storage RLS: users only see own files"],
+    deliverable:"Upload → parsed data stored → reload sees file" },
+  { phase:1, day:4, title:"Data preview & column engine",
+    build:["Preview table: first 100 rows, virtualized","Auto-detect: number, decimal, string, date, boolean","Column header: name, type icon, null %, unique","Click column → side panel with stats","Show-all-rows toggle (paginated)","Search/filter rows client-side"],
+    verify:["Type detection on Northwind, Titanic, sales data","Date column with mixed formats handled","Empty cells shown as placeholder, not crash"],
+    deliverable:"Data preview with smart column inspection" },
+  { phase:1, day:5, title:"Column rename, tagging & cleaning",
+    build:["Inline column rename","Tag as Dimension or Measure","Override detected type","Null handling: keep/drop/replace 0/replace mean","Save column config to dataset_configs table","Reset column config button"],
+    verify:["Rename persists on reload","String→number override works","Null strategy reflected in preview live"],
+    deliverable:"Column engine — fix bad data without Excel" },
+  { phase:1, day:6, title:"Chart builder UI shell",
+    build:["3-pane layout: columns / canvas / properties","Column list: search, filter by type, drag handle","Axis drop zones: X, Y, Group-by, Filter","Drag-drop with @dnd-kit/core","Chart type picker (bar/line/pie/scatter icons)","Title + axis label inputs","Empty state copy"],
+    verify:["Drag-drop works smoothly","Wrong-type drop shows clear error","Switching chart preserves compatible axes"],
+    deliverable:"Interactive chart builder shell" },
+  { phase:1, day:7, title:"Chart rendering (all 4 types)",
+    build:["ECharts React wrapper component","Bar chart: grouped + stacked toggle","Line chart: multi-series support","Pie chart: auto-group small slices to 'Other'","Scatter: color-by-category","Color palette picker (6 presets)","Legend show/hide","Tooltip with formatted numbers"],
+    verify:["All 4 chart types work with 5k-row dataset","Multi-series line with 3+ Y columns","Pie with 50 categories auto-groups","Colorblind palette passes contrast"],
+    deliverable:"All 4 chart types working with real data" },
+  { phase:1, day:8, title:"Save, workspace & Phase 1 polish",
+    build:["Save chart config to charts table","Workspace grid: thumbnails + titles","Rename + delete with confirm","Open saved chart rehydrates builder","Loading skeletons everywhere","Empty states with friendly copy","Mobile responsive check (375px)","Phase 1 demo video (2 min Loom)"],
+    verify:["Saved chart reloads pixel-identical","Delete works without page refresh","No console errors anywhere","Demo video plays on shared link"],
+    deliverable:"Phase 1 demo — full flow signup → saved chart" },
+
+  // PHASE 2 — Analysis power
+  { phase:2, day:9, title:"Pivot table builder",
+    build:["New chart type: Pivot Table","Config: Rows, Columns, Values (multi)","Render pivot with dynamic headers","Row + column totals toggle","Sticky headers on scroll","Conditional cell color scale"],
+    verify:["3-row × 2-col dimension pivot renders","Totals match manual Excel pivot","20-col-wide pivot scrolls cleanly"],
+    deliverable:"Working pivot table builder" },
+  { phase:2, day:10, title:"Aggregation engine",
+    build:["Aggregations: SUM, AVG, COUNT, COUNT DISTINCT, MIN, MAX, MEDIAN","% of row / column / grand total","Date grouping: Day/Week/Month/Quarter/Year","Custom number formats (currency, %, decimals)","Formats apply to pivot + charts + exports"],
+    verify:["SUM matches Excel on same data","Date grouping buckets correctly (Q1, Mar, 2024)","Currency shows ₹1,23,456 vs $123,456 by locale"],
+    deliverable:"Full aggregation engine" },
+  { phase:2, day:11, title:"Filter panel",
+    build:["Right-side slide-out panel","Category filter: searchable multi-select (1000+)","Number filter: min/max + histogram","Date filter: from/to + presets (MTD, YTD, last 7d)","Active filter chips","Clear-all button","Filter state saved with chart"],
+    verify:["Filter applies to chart + pivot simultaneously","Removing chip restores data","0-result shows empty state, not crash"],
+    deliverable:"Live filter panel" },
+  { phase:2, day:12, title:"Group, sort, Top-N & KPI card",
+    build:["Sort column toggle (asc/desc arrows)","Top-N filter ('top 10 by Revenue')","KPI card: big number + label + comparison","Period-over-period (vs last year/month)","Trend arrow + color","Sparkline mini-chart in KPI"],
+    verify:["Top-10 matches manual sort","KPI shows correct trend direction","KPI handles missing prior-period gracefully"],
+    deliverable:"KPI card + Top-N controls" },
+  { phase:2, day:13, title:"Calculated fields & conditional formatting",
+    build:["Calculated field builder (name + formula)","Formula syntax: math + IF + column refs","Inline formula validation","Calc fields appear in column list","Conditional cell rules"],
+    verify:["Calc field updates when data changes","Invalid formula shows error, no crash","Conditional formatting in PDF/Excel export"],
+    deliverable:"Calculated fields + cell rules" },
+  { phase:2, day:14, title:"Excel export",
+    build:["Integrate ExcelJS (browser-side)","Export chart: data + chart image sheets","Export pivot: data + totals","Auto-fit column widths","Style header row","Numbers as numbers, dates as dates","Multi-sheet export","Filename with date"],
+    verify:["XLSX opens in Excel, Sheets, LibreOffice","Numbers sum in Excel (real number type)","Conditional formatting appears in Excel"],
+    deliverable:"One-click Excel export (single + multi-sheet)" },
+  { phase:2, day:15, title:"PDF export",
+    build:["html2canvas at 2x resolution","jsPDF A4 landscape","Header: logo + chart title","Footer: timestamp + page number","Multi-chart PDF with TOC page","Filter chips shown in PDF"],
+    verify:["PDF opens in Chrome + Acrobat","Charts render sharp (not blurry)","Multi-chart paginates correctly"],
+    deliverable:"Branded PDF export" },
+  { phase:2, day:16, title:"Multi-chart dashboard",
+    build:["New artifact: Dashboard","Grid layout (react-grid-layout)","Add saved chart to dashboard via picker","Dashboard-level filter cascades to charts","Export whole dashboard to PDF","Shareable URL within workspace","Phase 2 demo video"],
+    verify:["Layout saves and reloads identically","Dashboard filter updates all charts","PDF of dashboard paginates correctly"],
+    deliverable:"Multi-chart dashboard + Phase 2 demo" },
+
+  // PHASE 3 — Differentiators
+  { phase:3, day:17, title:"Company workspace & members",
+    build:["workspaces + workspace_members tables","Create workspace on first login","Workspace switcher in nav","Settings: name, logo, brand color","Logo in PDF + nav","Brand color in chart palette + UI","Invite by email link (7-day expiry, roles)"],
+    verify:["Logo appears in PDF header","Invite link creates correctly-scoped account","Color change updates palette live","RLS: workspace data only visible to members"],
+    deliverable:"Company workspace with branding + invites" },
+  { phase:3, day:18, title:"Column config presets",
+    build:["column_configs table (workspace-scoped)","Define column with aliases array","Default format per column","KPI formula library","Exact-match auto-apply on new upload"],
+    verify:["Same-schema file re-upload auto-applies configs","KPI formulas calculate in pivots","Format applies to table + Excel cells"],
+    deliverable:"Column config presets (exact-match)" },
+  { phase:3, day:19, title:"★ Schema fingerprinting (embeddings)",
+    build:["Embed canonical names + aliases via OpenAI","Store in Supabase pgvector","Match new columns by cosine similarity","Confidence badges: Exact / Fuzzy / Suggested / No match","User approves/rejects matches","Approved matches update alias list (active learning)"],
+    verify:["'Sales Amount' ↔ 'Revenue' matches high confidence","'Customer ID' ↔ 'client_id' matches","Unrelated columns do NOT match","Embedding cost < $0.001 per upload"],
+    deliverable:"Semantic config auto-apply — the moat" },
+  { phase:3, day:20, title:"Saved analysis templates",
+    build:["'Save as template' button on any artifact","Template stores axes by canonical name + filters + format","Template library with thumbnails","Apply template uses schema fingerprinting","Graceful warning for missing columns","Private vs workspace-shared templates"],
+    verify:["Template applies to different but similar CSV","Shared template visible to workspace members","Missing-column warning is actionable"],
+    deliverable:"Full template system" },
+  { phase:3, day:21, title:"★ 'Show me the math' audit drawer",
+    build:["Info icon on every chart/KPI","Drawer with plain-English audit trail","Shows: source, filters, aggregation, row count before/after","'Copy as text' button","'Show source rows' opens filtered raw data"],
+    verify:["Numbers in drawer match chart exactly","Drawer updates live as filters change","Plain English readable by non-analysts (test with 2)"],
+    deliverable:"Trust feature for finance/ops users" },
+  { phase:3, day:22, title:"★ AI chart suggestions + AI exec summary",
+    build:["On upload: send columns + 20 sample rows to Claude","3-5 chart suggestions with reasons","Click suggestion → opens builder pre-configured","Optional AI exec summary toggle on PDF export","Claude generates 2-3 paragraph narrative","Cache AI responses","Per-user daily limits (free 5, pro 100)"],
+    verify:["Suggestions useful on 3 different datasets","Exec summary references real numbers (no hallucination)","Cost < $0.05 per upload","Daily limit shows clear upgrade prompt"],
+    deliverable:"AI-assisted setup + AI narratives" },
+  { phase:3, day:23, title:"★ Public embed & share links",
+    build:["'Share' button on chart/dashboard","Public read-only link (no auth)","Watermark 'Built with DataLens' (removable on Team)","Responsive iframe with theme query param","Vercel ISR for fast cached public charts","Toggle to revoke or password-protect"],
+    verify:["Embed renders in CodePen sandbox","Revoked link shows 'no longer available'","Public chart doesn't leak workspace name"],
+    deliverable:"Public embeds — growth lever" },
+
+  // PHASE 4 — Launch prep
+  { phase:4, day:24, title:"Marketing landing page",
+    build:["/ is landing, app moves to /app/*","Hero: headline + subhead + CTA + demo video","Feature grid (4-6 features with screenshots)","Pricing section (Starter/Pro/Team)","Logo wall placeholder","FAQ section","Footer with privacy + terms links"],
+    verify:["Lighthouse > 90 on landing page","Mobile responsive at 375px","CTA → signup flow"],
+    deliverable:"Public-facing landing page" },
+  { phase:4, day:25, title:"Stripe billing",
+    build:["Stripe account + products created","Stripe Checkout integration","Webhook handler for subscription events","subscriptions table tied to workspace","Plan gates (free: 3 uploads, 5 charts, no PDF)","Upgrade prompts on gated features","Billing page (Stripe Customer Portal)","Resend integration for receipts"],
+    verify:["End-to-end paid signup (test mode)","Webhook updates subscriptions correctly","Free user PDF click → upgrade modal","Downgrade re-applies free limits"],
+    deliverable:"Stripe billing live (test mode)" },
+  { phase:4, day:26, title:"Onboarding & empty states",
+    build:["3-step first-login checklist","Sample dataset link ('try our sample CSV')","First-visit tooltips on key UI","Empty state illustrations","Keyboard shortcuts (E, F, S, ?)","Cmd+K command palette"],
+    verify:["Checklist marks complete as user progresses","Tooltips appear once per user","Sample dataset auto-generates starter chart"],
+    deliverable:"First-impression-ready UI" },
+  { phase:4, day:27, title:"Production hardening",
+    build:["React error boundaries on every route","Sentry SDK (frontend + Supabase functions)","RLS audit: user-A-can't-access-user-B tests","50MB file size cap with clear message","Rate limiting on upload (10/min/user)","Security headers via Vercel (CSP, HSTS)","CSRF on Stripe webhook (signature verify)","Privacy + Terms pages"],
+    verify:["Deliberate error → Sentry captures stack trace","Cross-user RLS attempt blocked","60MB upload → clear size error","securityheaders.com grade A+"],
+    deliverable:"Production-hardened app" },
+  { phase:4, day:28, title:"QA pass on 5 real datasets",
+    build:["QA on 5 datasets (sales, HR, marketing, finance, ops)","Full flow each: signup → upload → chart → pivot → filter → export → template","Verify Excel + PDF outputs","Test Chrome, Firefox, Safari, Edge","Test iPhone Safari + Android Chrome","Fix regressions","Update Sentry alert rules"],
+    verify:["All 5 datasets complete flow with no errors","No console errors on any browser","Mobile dashboard at least usable"],
+    deliverable:"QA-passed product" },
+  { phase:4, day:29, title:"Custom domain & production deploy",
+    build:["Buy domain (Cloudflare Registrar)","Connect to Vercel — auto SSL","Stripe: switch test → live mode","Env variables audit (no secrets in code)","Supabase: enable daily backups + PITR","Smoke test full production flow"],
+    verify:["Custom domain loads over HTTPS","Stripe live mode accepts $1 test (refunded)","Sentry errors during smoke test = 0","Database backup confirmed"],
+    deliverable:"Live production app on custom domain" },
+  { phase:4, day:30, title:"🚀 Soft launch",
+    build:["Record 3-min product demo (Loom)","Write LinkedIn launch post","DM 5 analysts you know","Embed Tally feedback form at /app/feedback","Schedule ProductHunt launch (Tue 12:01 AM PT)","Tag v1.0 in GitHub","Celebrate"],
+    verify:["Demo video plays on shared link","App handles 5 concurrent users","First feedback submissions land in inbox"],
+    deliverable:"🎉 DataLens BI v1.0 — live & launched" },
+];
+
+const PHASES = {
+  1: { name:"Foundation", days:"Days 1–8", color:"p1",
+       sub:"A user can sign up, upload a CSV/XLSX, see a clean data preview, and build + save a working bar/line/pie/scatter chart." },
+  2: { name:"Analysis power", days:"Days 9–16", color:"p2",
+       sub:"Real analysis platform. Pivot tables, filters, aggregations, KPIs, production-quality exports, multi-chart dashboards." },
+  3: { name:"Differentiators", days:"Days 17–23", color:"p3",
+       sub:"The features that make this not 'another BI tool.' Company workspaces, smart config persistence, AI assistance, public embeds, audit trails." },
+  4: { name:"Launch prep", days:"Days 24–30", color:"p4",
+       sub:"Production-grade SaaS. Landing page, Stripe, onboarding, hardening, custom domain, soft launch." },
+};
+
+const DECISIONS = [
+  { date:"2026-05-21", title:"Supabase over R2 + custom Postgres", note:"One auth model, faster Day 1, RLS bundled" },
+  { date:"2026-05-21", title:"ECharts over Recharts", note:"Performance past 5k rows + chart type coverage" },
+  { date:"2026-05-21", title:"30 days, not 21", note:"Original missed landing page + Stripe + onboarding" },
+  { date:"2026-05-21", title:"AI features in Phase 3 only", note:"Per your call: keep Phase 1 deterministic" },
+];
+
+const BACKLOG = [
+  "Comparison mode (upload two files, auto-diff)",
+  "Scheduled email reports",
+  "REST API data source",
+  "SQL / BigQuery / Snowflake direct connectors",
+  "White-label mode (Team+)",
+  "SSO / SAML (Enterprise)",
+  "Mobile app",
+  "Template marketplace (community-contributed)",
+  "Natural-language query → chart",
+  "Anomaly detection on KPIs",
+  "Slack/Teams integration",
+  "Audit logs export (SOC 2 prep)",
+];
+
+const STATUS_OPTIONS = [
+  { id:"not_started", label:"Not started" },
+  { id:"in_progress", label:"In progress" },
+  { id:"done",        label:"Done" },
+  { id:"blocked",     label:"Blocked" },
+  { id:"deferred",    label:"Deferred" },
+];
+
+// ============ STATE ============
+const STORAGE_KEY = "datalens_progress_v1";
+let state = loadState();
+let currentPhase = 1;
+let currentFilter = "all";
+let expandedDays = new Set();
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { tasks:{}, manualStatus:{}, notes:{} };
+    return JSON.parse(raw);
+  } catch { return { tasks:{}, manualStatus:{}, notes:{} }; }
+}
+
+function saveState(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch (e) { toast("Could not save progress (storage blocked?)"); }
+}
+
+function taskKey(day, section, idx){ return `d${day}-${section}-${idx}`; }
+function dayKey(day){ return `d${day}`; }
+
+function dayTaskCount(d){ return d.build.length + d.verify.length; }
+
+function dayDoneCount(d){
+  let n = 0;
+  d.build.forEach((_,i)=>{ if (state.tasks[taskKey(d.day,"b",i)]) n++; });
+  d.verify.forEach((_,i)=>{ if (state.tasks[taskKey(d.day,"v",i)]) n++; });
+  return n;
+}
+
+function dayStatus(d){
+  const manual = state.manualStatus[dayKey(d.day)];
+  if (manual && manual !== "auto") return manual;
+  const total = dayTaskCount(d);
+  const done = dayDoneCount(d);
+  if (done === 0) return "not_started";
+  if (done === total) return "done";
+  return "in_progress";
+}
+
+// ============ RENDER ============
+function renderStats(){
+  const totalTasks = PLAN.reduce((s,d)=>s+dayTaskCount(d), 0);
+  const doneTasks  = PLAN.reduce((s,d)=>s+dayDoneCount(d), 0);
+  const daysDone   = PLAN.filter(d=>dayStatus(d)==="done").length;
+  const daysInProgress = PLAN.filter(d=>dayStatus(d)==="in_progress").length;
+  const pct = totalTasks ? Math.round((doneTasks/totalTasks)*100) : 0;
+  const phases = [1,2,3,4].map(p=>{
+    const phaseDays = PLAN.filter(d=>d.phase===p);
+    const t = phaseDays.reduce((s,d)=>s+dayTaskCount(d),0);
+    const dn = phaseDays.reduce((s,d)=>s+dayDoneCount(d),0);
+    return { p, pct: t?Math.round((dn/t)*100):0, done:dn, total:t };
+  });
+
+  document.getElementById("stats").innerHTML = `
+    <div class="stat">
+      <div class="stat-label">Overall progress</div>
+      <div class="stat-value">${pct}%</div>
+      <div class="stat-sub">${doneTasks} / ${totalTasks} tasks</div>
+      <div class="bar"><div class="bar-fill" style="width:${pct}%;background:var(--green)"></div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Days completed</div>
+      <div class="stat-value">${daysDone} <span style="font-size:14px;color:var(--text-3);font-weight:500">/ 30</span></div>
+      <div class="stat-sub">${daysInProgress} in progress</div>
+      <div class="bar"><div class="bar-fill" style="width:${(daysDone/30)*100}%;background:var(--green)"></div></div>
+    </div>
+    ${phases.map(({p,pct,done,total})=>`
+      <div class="stat">
+        <div class="stat-label" style="color:var(--${PHASES[p].color})">Phase ${p} — ${PHASES[p].name}</div>
+        <div class="stat-value">${pct}%</div>
+        <div class="stat-sub">${done} / ${total} tasks</div>
+        <div class="bar"><div class="bar-fill" style="width:${pct}%;background:var(--${PHASES[p].color})"></div></div>
+      </div>`).join("")}
+  `;
+}
+
+function renderTabs(){
+  const html = [1,2,3,4].map(p=>{
+    const days = PLAN.filter(d=>d.phase===p);
+    const done = days.filter(d=>dayStatus(d)==="done").length;
+    return `<button class="tab ${PHASES[p].color} ${currentPhase===p?'active':''}" onclick="setPhase(${p})">
+      Phase ${p} · ${PHASES[p].name}
+      <span class="count">${done}/${days.length}</span>
+    </button>`;
+  }).join("");
+  document.getElementById("tabs").innerHTML = html;
+}
+
+function renderPhaseBanner(){
+  const ph = PHASES[currentPhase];
+  document.getElementById("phase-banner").innerHTML = `
+    <div class="phase-banner ${ph.color}">
+      <div class="pb-tag ${ph.color}">${ph.days} · Phase ${currentPhase}</div>
+      <div class="pb-title">${ph.name}</div>
+      <div class="pb-sub">${ph.sub}</div>
+    </div>`;
+}
+
+function renderDays(){
+  let days = PLAN.filter(d=>d.phase===currentPhase);
+  if (currentFilter !== "all") {
+    days = days.filter(d=>dayStatus(d)===currentFilter);
+  }
+  if (days.length===0) {
+    document.getElementById("days").innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-2);grid-column:1/-1">No days match this filter.</div>`;
+    return;
+  }
+  document.getElementById("days").innerHTML = days.map(d=>renderDay(d)).join("");
+}
+
+function renderDay(d){
+  const status = dayStatus(d);
+  const statusOpt = STATUS_OPTIONS.find(s=>s.id===status);
+  const total = dayTaskCount(d);
+  const done = dayDoneCount(d);
+  const pct = total?Math.round((done/total)*100):0;
+  const isExpanded = expandedDays.has(d.day);
+
+  return `
+    <div class="day p${d.phase} ${isExpanded?'expanded':''}" data-day="${d.day}">
+      <div class="day-head" onclick="toggleDay(${d.day}, event)">
+        <div style="flex:1;min-width:0">
+          <div class="day-num">Day ${d.day}${d.day===30?' 🚀':''}</div>
+          <div class="day-title">${d.title}</div>
+        </div>
+        <div class="status-menu-wrap" onclick="event.stopPropagation()">
+          <button class="status-btn status-${status}" onclick="toggleStatusMenu(${d.day})">
+            <span class="status-dot"></span>${statusOpt.label} ▾
+          </button>
+          <div class="status-menu" id="menu-${d.day}">
+            ${STATUS_OPTIONS.map(s=>`
+              <div class="status-menu-item" onclick="setStatus(${d.day},'${s.id}')">
+                <span class="status-btn status-${s.id}" style="pointer-events:none"><span class="status-dot"></span></span>
+                ${s.label}
+              </div>`).join("")}
+            <div class="status-menu-item" onclick="setStatus(${d.day},'auto')" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px">
+              <span style="color:var(--text-3)">↺</span> Auto (from tasks)
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="day-progress" onclick="toggleDay(${d.day}, event)">
+        <div class="day-progress-bar"><div class="day-progress-fill" style="width:${pct}%"></div></div>
+        <div class="day-progress-text">${done}/${total}</div>
+      </div>
+      <div class="day-detail">
+        <div class="detail-section">
+          <h4>What we build</h4>
+          ${d.build.map((t,i)=>renderTask(d.day,"b",i,t)).join("")}
+        </div>
+        <div class="detail-section">
+          <h4>How we verify it works</h4>
+          ${d.verify.map((t,i)=>renderTask(d.day,"v",i,t)).join("")}
+        </div>
+        <div class="deliverable">
+          <div class="deliverable-label">End-of-day deliverable</div>
+          <div class="deliverable-text">${d.deliverable}</div>
+        </div>
+        <div class="detail-section" style="margin-top:14px;margin-bottom:0">
+          <h4>Notes (blockers, deviations, ideas)</h4>
+          <textarea class="notes-area" placeholder="Add notes for this day..." onchange="saveNote(${d.day}, this.value)">${state.notes[dayKey(d.day)]||''}</textarea>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderTask(day, section, idx, text){
+  const k = taskKey(day, section, idx);
+  const checked = !!state.tasks[k];
+  return `
+    <div class="task ${checked?'done':''}" onclick="toggleTask('${k}', event)">
+      <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation();toggleTask('${k}')">
+      <label>${text}</label>
+    </div>`;
+}
+
+function renderDecisions(){
+  document.getElementById("decisions").innerHTML = DECISIONS.map(d=>`
+    <div class="log-row">
+      <div class="log-date">${d.date}</div>
+      <div class="log-text"><strong>${d.title}</strong><span>${d.note}</span></div>
+    </div>`).join("");
+}
+
+function renderBacklog(){
+  document.getElementById("backlog").innerHTML = BACKLOG.map(b=>`<div class="backlog-item">· ${b}</div>`).join("");
+}
+
+function renderAll(){
+  renderStats();
+  renderTabs();
+  renderPhaseBanner();
+  renderDays();
+}
+
+// ============ ACTIONS ============
+function setPhase(p){ currentPhase = p; renderAll(); }
+function setFilter(f){
+  currentFilter = f;
+  document.querySelectorAll(".filter-pill").forEach(el=>{
+    el.classList.toggle("active", el.dataset.filter===f);
+  });
+  renderDays();
+}
+function toggleDay(day, evt){
+  if (evt) evt.stopPropagation();
+  if (expandedDays.has(day)) expandedDays.delete(day);
+  else expandedDays.add(day);
+  renderDays();
+}
+function toggleTask(key, evt){
+  if (evt) evt.stopPropagation();
+  state.tasks[key] = !state.tasks[key];
+  saveState();
+  renderAll();
+}
+function toggleStatusMenu(day){
+  document.querySelectorAll(".status-menu").forEach(m=>{
+    if (m.id !== `menu-${day}`) m.classList.remove("open");
+  });
+  const m = document.getElementById(`menu-${day}`);
+  if (m) m.classList.toggle("open");
+}
+function setStatus(day, status){
+  if (status === "auto") delete state.manualStatus[dayKey(day)];
+  else state.manualStatus[dayKey(day)] = status;
+  saveState();
+  document.getElementById(`menu-${day}`).classList.remove("open");
+  renderAll();
+}
+function saveNote(day, val){
+  state.notes[dayKey(day)] = val;
+  saveState();
+}
+function resetAll(){
+  if (!confirm("Reset ALL progress? This wipes every checkbox, status, and note. Cannot be undone.")) return;
+  state = { tasks:{}, manualStatus:{}, notes:{} };
+  saveState();
+  renderAll();
+  toast("Progress reset");
+}
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `datalens-progress-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Exported");
+}
+function importJSON(){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+  input.onchange = e=>{
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = ev=>{
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!parsed.tasks) throw new Error("Invalid file");
+        state = { tasks: parsed.tasks||{}, manualStatus: parsed.manualStatus||{}, notes: parsed.notes||{} };
+        saveState();
+        renderAll();
+        toast("Imported");
+      } catch (e) { toast("Invalid progress file"); }
+    };
+    r.readAsText(file);
+  };
+  input.click();
+}
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 2000);
+}
+
+// Close status menus when clicking outside
+document.addEventListener("click", e=>{
+  if (!e.target.closest(".status-menu-wrap")) {
+    document.querySelectorAll(".status-menu.open").forEach(m=>m.classList.remove("open"));
+  }
+});
+
+// ============ INIT ============
+renderAll();
+renderDecisions();
+renderBacklog();
+</script>
+</body>
+</html>

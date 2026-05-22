@@ -1,0 +1,5 @@
+email : pw-Datalens@0804
+
+Supabase : 
+acc- github -> mail : datalens.bi@gmail.com
+pw- Datalens@2808
