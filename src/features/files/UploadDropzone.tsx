@@ -179,6 +179,11 @@ export function UploadDropzone({ onUploaded }: UploadDropzoneProps) {
 
   function handleDragLeave(e: React.DragEvent) {
     e.preventDefault();
+    // Ignore leave events fired when crossing child elements inside the dropzone.
+    // currentTarget is the dropzone; relatedTarget is what we're entering next.
+    // If relatedTarget is a child of the dropzone, the user is still inside.
+    const next = e.relatedTarget as Node | null;
+    if (next && e.currentTarget.contains(next)) return;
     setIsDragOver(false);
   }
 

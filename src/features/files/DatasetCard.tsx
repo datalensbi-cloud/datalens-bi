@@ -79,7 +79,7 @@ export function DatasetCard({ dataset, onDeleted }: DatasetCardProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+              className="h-8 w-8 transition-opacity lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
               aria-label="More actions"
             >
               <MoreVertical className="h-4 w-4" />

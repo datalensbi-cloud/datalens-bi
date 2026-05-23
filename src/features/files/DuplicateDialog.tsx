@@ -48,9 +48,7 @@ export function DuplicateDialog({
         <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
           <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={onUploadAsCopy}>Upload as a copy</AlertDialogAction>
-          <AlertDialogAction onClick={onOpenExisting} className="bg-primary">
-            Use existing
-          </AlertDialogAction>
+          <AlertDialogAction onClick={onOpenExisting}>Use existing</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
