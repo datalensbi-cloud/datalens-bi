@@ -8,6 +8,7 @@ import { AuthCallbackPage } from '@/features/auth/AuthCallbackPage';
 import { AppLayout } from './AppLayout';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { FilesPage } from '@/features/files/FilesPage';
+import { PreviewPage } from '@/features/files/PreviewPage';
 import { ChartsPage } from '@/features/charts/ChartsPage';
 import { TemplatesPage } from '@/features/templates/TemplatesPage';
 import { WorkspacesPage } from '@/features/workspaces/WorkspacesPage';
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/files', element: <FilesPage /> },
+          { path: '/files/:datasetId', element: <PreviewPage /> },
           { path: '/charts', element: <ChartsPage /> },
           { path: '/templates', element: <TemplatesPage /> },
           { path: '/workspaces', element: <WorkspacesPage /> },

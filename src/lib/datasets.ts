@@ -12,6 +12,12 @@ export async function listDatasets(userId: string): Promise<Dataset[]> {
   return data;
 }
 
+export async function getDataset(id: string): Promise<Dataset | null> {
+  const { data, error } = await supabase.from('datasets').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function findDuplicateByHash(opts: {
   userId: string;
   hash: string;

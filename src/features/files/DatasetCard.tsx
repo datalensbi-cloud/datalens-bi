@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FileSpreadsheet, MoreVertical, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,6 +32,7 @@ interface DatasetCardProps {
 }
 
 export function DatasetCard({ dataset, onDeleted }: DatasetCardProps) {
+  const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -39,6 +41,12 @@ export function DatasetCard({ dataset, onDeleted }: DatasetCardProps) {
     month: 'short',
     day: 'numeric',
   });
+
+  function handleCardClick(e: React.MouseEvent) {
+    // Don't navigate if the click came from the kebab menu or dialog
+    if ((e.target as HTMLElement).closest('[data-no-card-nav]')) return;
+    navigate(`/files/${dataset.id}`);
+  }
 
   async function handleDelete() {
     setDeleting(true);
@@ -56,7 +64,10 @@ export function DatasetCard({ dataset, onDeleted }: DatasetCardProps) {
   }
 
   return (
-    <Card className="group relative overflow-hidden p-5 transition-shadow hover:shadow-md">
+    <Card
+      onClick={handleCardClick}
+      className="group relative cursor-pointer overflow-hidden p-5 transition-shadow hover:shadow-md hover:border-primary/30"
+    >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
           <FileSpreadsheet className="h-5 w-5 text-primary" />
@@ -75,7 +86,7 @@ export function DatasetCard({ dataset, onDeleted }: DatasetCardProps) {
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild data-no-card-nav>
             <Button
               variant="ghost"
               size="icon"
@@ -85,7 +96,7 @@ export function DatasetCard({ dataset, onDeleted }: DatasetCardProps) {
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" data-no-card-nav>
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => setConfirmOpen(true)}
@@ -111,7 +122,7 @@ export function DatasetCard({ dataset, onDeleted }: DatasetCardProps) {
       <p className="mt-3 text-xs text-muted-foreground">Uploaded {uploadedDate}</p>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent data-no-card-nav>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete "{dataset.name}"?</AlertDialogTitle>
             <AlertDialogDescription>
