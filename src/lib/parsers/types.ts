@@ -5,6 +5,13 @@ export interface ParsedDataset {
   rows: Record<string, unknown>[];
   /** Total row count (same as rows.length, but exposed explicitly for clarity) */
   rowCount: number;
+  /**
+   * Non-fatal advisories surfaced during parsing. The caller decides how
+   * to display these (toast, banner, etc). Examples:
+   *   - "Workbook has 3 sheets; only the first ('Q1 Sales') was imported"
+   *   - "Row 47 had a mismatched column count; treated as best-effort"
+   */
+  warnings?: string[];
 }
 
 export class ParseError extends Error {

@@ -137,6 +137,12 @@ export function UploadDropzone({ onUploaded }: UploadDropzoneProps) {
         toast.success(
           `"${name}" uploaded — ${parsed.rowCount.toLocaleString()} rows × ${parsed.columns.length} columns`
         );
+        // Surface parser advisories (e.g. multi-sheet XLSX) after the success toast
+        if (parsed.warnings && parsed.warnings.length > 0) {
+          for (const w of parsed.warnings) {
+            toast.warning(w, { duration: 8000 });
+          }
+        }
         onUploaded();
         setStage({ kind: 'idle' });
       } catch (err) {
@@ -215,28 +221,47 @@ export function UploadDropzone({ onUploaded }: UploadDropzoneProps) {
 
   return (
     <>
-      <button
-        type="button"
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,.tsv,.xlsx,.xls"
+        className="sr-only"
+        aria-label="Upload CSV or Excel file"
+        onChange={handleFileInput}
+      />
+      {/*
+        Dropzone is a div with role="button" instead of a native <button>.
+        This lets us safely nest the "Dismiss" button inside the error state
+        without violating "no nested interactive controls" a11y rule.
+        Keyboard support (Enter/Space) is added explicitly.
+      */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={
+          stage.kind === 'error'
+            ? `Upload failed: ${stage.message}. Press Enter to try again.`
+            : 'Drop a file here or press Enter to browse'
+        }
         onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={cn(
-          'group flex w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed bg-background p-10 text-center transition-colors',
+          'group flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed bg-background p-10 text-center transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
           isDragOver
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/25 hover:border-muted-foreground/50',
           stage.kind === 'error' && 'border-destructive/50 bg-destructive/5'
         )}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".csv,.tsv,.xlsx,.xls"
-          className="hidden"
-          onChange={handleFileInput}
-        />
-
         {stage.kind === 'error' ? (
           <>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
@@ -277,7 +302,7 @@ export function UploadDropzone({ onUploaded }: UploadDropzoneProps) {
             </div>
           </>
         )}
-      </button>
+      </div>
 
       <DuplicateDialog
         open={duplicate !== null}

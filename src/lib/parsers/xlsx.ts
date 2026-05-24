@@ -27,7 +27,22 @@ export async function parseXLSX(file: File): Promise<ParsedDataset> {
     if (columns.length === 0) {
       throw new ParseError('Excel sheet has no detectable columns.');
     }
-    return { columns, rows, rowCount: rows.length };
+
+    // Surface multi-sheet workbooks as a non-fatal warning so the user
+    // knows we only imported sheet 1. Full multi-sheet picker is Phase 2.
+    const warnings: string[] = [];
+    if (workbook.SheetNames.length > 1) {
+      const otherSheets = workbook.SheetNames.slice(1);
+      const preview =
+        otherSheets.length <= 3
+          ? otherSheets.map((s) => `"${s}"`).join(', ')
+          : `${otherSheets.slice(0, 3).map((s) => `"${s}"`).join(', ')} +${otherSheets.length - 3} more`;
+      warnings.push(
+        `Workbook has ${workbook.SheetNames.length} sheets; only "${firstSheetName}" was imported. Other sheets (${preview}) ignored. Multi-sheet picker coming in Phase 2.`
+      );
+    }
+
+    return { columns, rows, rowCount: rows.length, warnings };
   } catch (err) {
     if (err instanceof ParseError) throw err;
     throw new ParseError(
