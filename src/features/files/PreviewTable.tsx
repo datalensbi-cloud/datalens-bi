@@ -49,8 +49,19 @@ export function PreviewTable({ columns, rows, selectedIndex, onSelectColumn }: P
               <TableHead
                 key={col.name}
                 onClick={() => onSelectColumn(idx)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectColumn(idx);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-pressed={selectedIndex === idx}
+                aria-label={`${col.name} — ${col.type}${col.isUnique ? ', primary key' : ''}. Click for column summary.`}
                 className={cn(
                   'cursor-pointer select-none whitespace-nowrap border-b transition-colors hover:bg-muted',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
                   selectedIndex === idx && 'bg-primary/10 hover:bg-primary/15'
                 )}
               >

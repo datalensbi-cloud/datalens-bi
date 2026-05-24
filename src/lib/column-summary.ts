@@ -66,11 +66,23 @@ export function calculateSummary(values: unknown[], type: ColumnType): ColumnSum
     if (nums.length === 0) {
       return { type: 'number', min: 0, max: 0, avg: 0, sum: 0, nullCount, uniqueCount: 0 };
     }
-    const sum = nums.reduce((a, b) => a + b, 0);
+    // Iterate once to compute min/max/sum together — and crucially, avoid
+    // Math.min(...nums) / Math.max(...nums). The spread form passes every
+    // element as a function argument; engines have an argument-count limit
+    // (~64k in some browsers) and large datasets would crash with
+    // "RangeError: Maximum call stack size exceeded".
+    let min = nums[0]!;
+    let max = nums[0]!;
+    let sum = 0;
+    for (const n of nums) {
+      if (n < min) min = n;
+      if (n > max) max = n;
+      sum += n;
+    }
     return {
       type: 'number',
-      min: Math.min(...nums),
-      max: Math.max(...nums),
+      min,
+      max,
       sum,
       avg: sum / nums.length,
       nullCount,
