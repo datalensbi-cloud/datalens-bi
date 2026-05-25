@@ -22,6 +22,23 @@ export interface ColumnOverride {
 /** Map keyed by original column name. */
 export type ColumnOverrides = Record<string, ColumnOverride>;
 
+/** Supported chart types — extended over Days 7-11. */
+export type ChartType = 'bar' | 'line' | 'pie' | 'scatter';
+
+/** Chart configuration — schema-less JSONB. Knobs added across Days 7-11. */
+export interface ChartConfig {
+  /** Column name from the dataset to use as X axis */
+  x?: string;
+  /** Column name from the dataset to use as Y axis (single Y for v1; Day 10 adds multi-Y) */
+  y?: string;
+  /** Chart title shown above the rendering */
+  title?: string;
+  /** Optional X-axis label override (default: column name) */
+  xAxisLabel?: string;
+  /** Optional Y-axis label override (default: column name) */
+  yAxisLabel?: string;
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -106,6 +123,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      charts: {
+        Row: {
+          id: string;
+          user_id: string;
+          dataset_id: string;
+          name: string;
+          chart_type: ChartType;
+          config: ChartConfig;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          dataset_id: string;
+          name: string;
+          chart_type: ChartType;
+          config?: ChartConfig;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          dataset_id?: string;
+          name?: string;
+          chart_type?: ChartType;
+          config?: ChartConfig;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -115,3 +165,4 @@ export type Database = {
 };
 
 export type Dataset = Database['public']['Tables']['datasets']['Row'];
+export type Chart = Database['public']['Tables']['charts']['Row'];

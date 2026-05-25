@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileSpreadsheet, AlertCircle, RotateCcw, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, AlertCircle, RotateCcw, Check, Loader2, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -233,6 +233,12 @@ export function PreviewPage() {
           <div className="flex items-center gap-2">
             <SaveIndicator status={saveStatus} />
             {hasAnyOverride && <ResetAllButton onReset={resetAllOverrides} />}
+            <Button asChild size="sm">
+              <Link to={`/charts/new?dataset=${dataset.id}`}>
+                <BarChart3 className="mr-1 h-4 w-4" />
+                Build chart
+              </Link>
+            </Button>
           </div>
         </div>
 

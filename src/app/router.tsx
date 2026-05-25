@@ -10,6 +10,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { FilesPage } from '@/features/files/FilesPage';
 import { PreviewPage } from '@/features/files/PreviewPage';
 import { ChartsPage } from '@/features/charts/ChartsPage';
+import { ChartBuilderPage } from '@/features/charts/ChartBuilderPage';
 import { TemplatesPage } from '@/features/templates/TemplatesPage';
 import { WorkspacesPage } from '@/features/workspaces/WorkspacesPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -41,6 +42,8 @@ export const router = createBrowserRouter([
           { path: '/files', element: <FilesPage /> },
           { path: '/files/:datasetId', element: <PreviewPage /> },
           { path: '/charts', element: <ChartsPage /> },
+          { path: '/charts/new', element: <ChartBuilderPage /> },
+          { path: '/charts/:chartId', element: <ChartBuilderPage /> },
           { path: '/templates', element: <TemplatesPage /> },
           { path: '/workspaces', element: <WorkspacesPage /> },
           { path: '/settings', element: <SettingsPage /> },
