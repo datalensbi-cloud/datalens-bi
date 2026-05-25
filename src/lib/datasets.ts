@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { deleteFiles } from './storage';
-import type { Dataset, DatasetStatus } from '@/types/supabase';
+import type { ColumnOverrides, Dataset, DatasetStatus } from '@/types/supabase';
 
 export async function listDatasets(userId: string): Promise<Dataset[]> {
   const { data, error } = await supabase
@@ -16,6 +16,17 @@ export async function getDataset(id: string): Promise<Dataset | null> {
   const { data, error } = await supabase.from('datasets').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   return data;
+}
+
+export async function updateColumnOverrides(
+  datasetId: string,
+  overrides: ColumnOverrides
+): Promise<void> {
+  const { error } = await supabase
+    .from('datasets')
+    .update({ column_overrides: overrides })
+    .eq('id', datasetId);
+  if (error) throw error;
 }
 
 export async function findDuplicateByHash(opts: {

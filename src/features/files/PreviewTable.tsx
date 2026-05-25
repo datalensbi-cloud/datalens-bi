@@ -1,12 +1,13 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { ColumnType, DetectedColumn } from '@/lib/column-types';
+import type { ColumnType } from '@/lib/column-types';
+import type { EffectiveColumn } from '@/lib/apply-overrides';
 import { ColumnTypeBadge, PrimaryKeyBadge } from './ColumnTypeBadge';
 
 interface PreviewTableProps {
-  columns: DetectedColumn[];
+  columns: EffectiveColumn[];
   rows: Record<string, unknown>[];
-  /** Index of the selected column, or null if none */
   selectedIndex: number | null;
   onSelectColumn: (index: number) => void;
 }
@@ -58,7 +59,7 @@ export function PreviewTable({ columns, rows, selectedIndex, onSelectColumn }: P
                 tabIndex={0}
                 role="button"
                 aria-pressed={selectedIndex === idx}
-                aria-label={`${col.name} — ${col.type}${col.isUnique ? ', primary key' : ''}. Click for column summary.`}
+                aria-label={`${col.displayName} — ${col.effectiveType}${col.hasOverride ? ', has overrides' : ''}${col.isUnique ? ', primary key' : ''}. Click for column summary.`}
                 className={cn(
                   'cursor-pointer select-none whitespace-nowrap border-b transition-colors hover:bg-muted',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
@@ -66,8 +67,9 @@ export function PreviewTable({ columns, rows, selectedIndex, onSelectColumn }: P
                 )}
               >
                 <div className="flex items-center gap-2 py-1">
-                  <span className="font-medium text-foreground">{col.name}</span>
-                  <ColumnTypeBadge type={col.type} />
+                  {col.hasOverride && <OverrideDot summary={col.overrideSummary} />}
+                  <span className="font-medium text-foreground">{col.displayName}</span>
+                  <ColumnTypeBadge type={col.effectiveType} />
                   {col.isUnique && <PrimaryKeyBadge />}
                 </div>
               </TableHead>
@@ -83,10 +85,10 @@ export function PreviewTable({ columns, rows, selectedIndex, onSelectColumn }: P
                   className={cn(
                     'whitespace-nowrap',
                     selectedIndex === colIdx && 'bg-primary/5',
-                    col.type === 'number' && 'text-right'
+                    col.effectiveType === 'number' && 'text-right'
                   )}
                 >
-                  {formatCell(row[col.name], col.type)}
+                  {formatCell(row[col.name], col.effectiveType)}
                 </TableCell>
               ))}
             </TableRow>
@@ -94,5 +96,28 @@ export function PreviewTable({ columns, rows, selectedIndex, onSelectColumn }: P
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function OverrideDot({ summary }: { summary: string[] }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+            aria-label="Column has overrides"
+          />
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">
+          <div className="font-medium">Custom overrides</div>
+          <ul className="mt-1 space-y-0.5 text-muted-foreground">
+            {summary.map((s) => (
+              <li key={s}>• {s}</li>
+            ))}
+          </ul>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
