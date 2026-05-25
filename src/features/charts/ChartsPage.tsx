@@ -10,12 +10,23 @@ import {
   Trash2,
   Plus,
   FileSpreadsheet,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/features/auth/useAuth';
-import { listCharts, deleteChart } from '@/lib/charts';
+import { listCharts, deleteChart, updateChart } from '@/lib/charts';
 import { listDatasets } from '@/lib/datasets';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -114,7 +125,29 @@ function ChartCard({
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameDraft, setRenameDraft] = useState(chart.name);
+  const [renaming, setRenaming] = useState(false);
   const Icon = CHART_ICON[chart.chart_type];
+
+  async function handleRename() {
+    const trimmed = renameDraft.trim();
+    if (!trimmed || trimmed === chart.name) {
+      setRenameOpen(false);
+      return;
+    }
+    setRenaming(true);
+    try {
+      await updateChart(chart.id, { name: trimmed });
+      toast.success('Chart renamed');
+      onDeleted(); // reuse the parent's "refresh list" callback
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Rename failed');
+    } finally {
+      setRenaming(false);
+      setRenameOpen(false);
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true);
@@ -163,6 +196,15 @@ function ChartCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" data-no-card-nav>
             <DropdownMenuItem
+              onClick={() => {
+                setRenameDraft(chart.name);
+                setRenameOpen(true);
+              }}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => setConfirmOpen(true)}
             >
@@ -194,6 +236,40 @@ function ChartCard({
           day: 'numeric',
         })}
       </p>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent data-no-card-nav>
+          <DialogHeader>
+            <DialogTitle>Rename chart</DialogTitle>
+            <DialogDescription>
+              Give the chart a clearer name. Underlying data and config are untouched.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="chart-rename">Chart name</Label>
+            <Input
+              id="chart-rename"
+              value={renameDraft}
+              onChange={(e) => setRenameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleRename();
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameOpen(false)} disabled={renaming}>
+              Cancel
+            </Button>
+            <Button onClick={handleRename} disabled={renaming || !renameDraft.trim()}>
+              {renaming ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent data-no-card-nav>
