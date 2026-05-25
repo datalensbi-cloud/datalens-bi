@@ -1,11 +1,21 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BarChart3, LineChart, PieChart, ScatterChart, MoreVertical, Trash2 } from 'lucide-react';
+import {
+  BarChart3,
+  LineChart,
+  PieChart,
+  ScatterChart,
+  MoreVertical,
+  Trash2,
+  Plus,
+  FileSpreadsheet,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/features/auth/useAuth';
 import { listCharts, deleteChart } from '@/lib/charts';
+import { listDatasets } from '@/lib/datasets';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +24,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -60,9 +72,7 @@ export function ChartsPage() {
             to create one.
           </p>
         </div>
-        <Button asChild>
-          <Link to="/files">Build a new chart</Link>
-        </Button>
+        <NewChartButton />
       </div>
 
       {isLoading ? (
@@ -206,5 +216,51 @@ function ChartCard({
         </AlertDialogContent>
       </AlertDialog>
     </Card>
+  );
+}
+
+function NewChartButton() {
+  const { user } = useAuth();
+  const { data: datasets, isLoading } = useQuery({
+    queryKey: ['datasets', user?.id],
+    queryFn: () => (user ? listDatasets(user.id) : Promise.resolve([])),
+    enabled: !!user,
+  });
+
+  // No datasets yet → CTA points the user toward uploading
+  if (!isLoading && (!datasets || datasets.length === 0)) {
+    return (
+      <Button asChild>
+        <Link to="/files">
+          <FileSpreadsheet className="mr-1 h-4 w-4" />
+          Upload a file first
+        </Link>
+      </Button>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button disabled={isLoading}>
+          <Plus className="mr-1 h-4 w-4" />
+          New chart
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="max-h-80 w-72 overflow-y-auto">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+          Choose a dataset to build from
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {datasets?.map((d) => (
+          <DropdownMenuItem key={d.id} asChild>
+            <Link to={`/charts/new?dataset=${d.id}`} className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{d.name}</span>
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
