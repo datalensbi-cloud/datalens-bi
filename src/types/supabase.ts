@@ -43,6 +43,9 @@ export interface FilterCondition {
   value?: unknown;
 }
 
+/** Date bucketing period for time-series X-axis grouping. */
+export type DateGroupPeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';
+
 /** Chart configuration — schema-less JSONB. Knobs accumulate across phases. */
 export interface ChartConfig {
   // Bar / Line / Pie / Scatter
@@ -50,6 +53,8 @@ export interface ChartConfig {
   y?: string;
   /** Aggregation applied to Y when X has duplicate values. Default: SUM. */
   aggregation?: AggregationFn;
+  /** When set and X column is a date, bucket X values into this period. */
+  xGroupBy?: DateGroupPeriod;
 
   // Pivot
   pivotRow?: string;
@@ -58,7 +63,7 @@ export interface ChartConfig {
   pivotAggregation?: AggregationFn;
   pivotShowTotals?: boolean;
 
-  // KPI (Sprint 2)
+  // KPI
   kpiColumn?: string;
   kpiAggregation?: AggregationFn;
 

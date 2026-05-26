@@ -8,9 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { ChartType, ChartConfig, AggregationFn } from '@/types/supabase';
+import type { ChartType, ChartConfig, AggregationFn, DateGroupPeriod } from '@/types/supabase';
 import type { EffectiveColumn } from '@/lib/apply-overrides';
 import { AGGREGATION_LABELS, NUMERIC_AGGREGATIONS, NON_NUMERIC_AGGREGATIONS } from '@/lib/aggregations';
+import { ALL_DATE_PERIODS, getDateGroupLabel } from '@/lib/date-grouping';
 import { ChartTypePicker } from './ChartTypePicker';
 
 interface PropertiesPaneProps {
@@ -36,12 +37,17 @@ export function PropertiesPane({
     onConfigChange({ ...config, [key]: value });
   }
 
+  const xCol = config.x ? columns.find((c) => c.name === config.x) : null;
   const yCol = config.y ? columns.find((c) => c.name === config.y) : null;
   const pivotValueCol = config.pivotValue
     ? columns.find((c) => c.name === config.pivotValue)
     : null;
+  const kpiCol = config.kpiColumn
+    ? columns.find((c) => c.name === config.kpiColumn)
+    : null;
 
   const isPivot = chartType === 'pivot';
+  const isKpi = chartType === 'kpi';
   const isCartesian = chartType === 'bar' || chartType === 'line';
   const isScatter = chartType === 'scatter';
   const isPie = chartType === 'pie';
@@ -87,6 +93,55 @@ export function PropertiesPane({
         </div>
       )}
 
+      {/* Date grouping — for bar/line when X is a date column */}
+      {(isCartesian || isPie) && xCol?.effectiveType === 'date' && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">Group dates by</Label>
+          <Select
+            value={config.xGroupBy ?? '__none__'}
+            onValueChange={(v) =>
+              setConfigField('xGroupBy', v === '__none__' ? undefined : (v as DateGroupPeriod))
+            }
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">None (use raw date)</SelectItem>
+              {ALL_DATE_PERIODS.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {getDateGroupLabel(p)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* KPI-specific config */}
+      {isKpi && (
+        <>
+          <div className="space-y-3">
+            <Label className="text-xs">KPI setup</Label>
+            <ColumnSelect
+              label="Column"
+              columns={columns}
+              value={config.kpiColumn}
+              onChange={(v) => setConfigField('kpiColumn', v)}
+            />
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">Aggregation</Label>
+              <AggregationDropdown
+                value={config.kpiAggregation ?? 'SUM'}
+                onChange={(v) => setConfigField('kpiAggregation', v)}
+                column={kpiCol ?? null}
+              />
+            </div>
+          </div>
+          <Separator />
+        </>
+      )}
+
       {/* Pivot-specific config */}
       {isPivot && (
         <>
@@ -125,7 +180,7 @@ export function PropertiesPane({
       )}
 
       {/* Display — title + axis labels */}
-      {!isPivot && (
+      {!isPivot && !isKpi && (
         <div className="space-y-3">
           <Label className="text-xs">Display</Label>
           <div>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Download, FileSpreadsheet } from 'lucide-react';
+import { useState, type RefObject } from 'react';
+import { Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { exportToExcel } from '@/lib/excel-export';
+import { exportToPdf } from '@/lib/pdf-export';
 import { groupAndAggregate } from '@/lib/aggregations';
 import { buildPivot } from '@/lib/build-pivot';
 import type { ChartType, ChartConfig } from '@/types/supabase';
@@ -21,16 +22,25 @@ interface ExportMenuProps {
   config: ChartConfig;
   columns: EffectiveColumn[];
   rows: Record<string, unknown>[];
+  /** Ref to the DOM element to capture for PDF export */
+  captureRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function ExportMenu({ chartName, chartType, config, columns, rows }: ExportMenuProps) {
+export function ExportMenu({
+  chartName,
+  chartType,
+  config,
+  columns,
+  rows,
+  captureRef,
+}: ExportMenuProps) {
   const [exporting, setExporting] = useState(false);
+
+  const filename = (chartName || 'Untitled').replace(/[^a-zA-Z0-9._-]/g, '_');
 
   async function handleExcel() {
     setExporting(true);
     try {
-      const filename = (chartName || 'Untitled').replace(/[^a-zA-Z0-9._-]/g, '_');
-
       if (chartType === 'pivot') {
         const pivot = buildPivot(rows, {
           rowField: config.pivotRow,
@@ -53,6 +63,9 @@ export function ExportMenu({ chartName, chartType, config, columns, rows }: Expo
           headers,
           rows: dataRows,
         });
+      } else if (chartType === 'kpi') {
+        toast.error('Use PDF export for KPI cards (single number).');
+        return;
       } else if (chartType === 'bar' || chartType === 'line' || chartType === 'pie') {
         if (!config.x || !config.y) {
           toast.error('Set X and Y axes before exporting.');
@@ -82,14 +95,19 @@ export function ExportMenu({ chartName, chartType, config, columns, rows }: Expo
             const x = r[config.x!];
             const y = r[config.y!];
             return [
-              typeof x === 'string' || typeof x === 'number' || typeof x === 'boolean' ? x : (x == null ? null : String(x)),
-              typeof y === 'string' || typeof y === 'number' || typeof y === 'boolean' ? y : (y == null ? null : String(y)),
+              typeof x === 'string' || typeof x === 'number' || typeof x === 'boolean'
+                ? x
+                : x == null
+                  ? null
+                  : String(x),
+              typeof y === 'string' || typeof y === 'number' || typeof y === 'boolean'
+                ? y
+                : y == null
+                  ? null
+                  : String(y),
             ];
           }),
         });
-      } else {
-        toast.error(`Excel export not implemented for ${chartType} yet.`);
-        return;
       }
 
       toast.success('Exported to Excel');
@@ -100,18 +118,42 @@ export function ExportMenu({ chartName, chartType, config, columns, rows }: Expo
     }
   }
 
+  async function handlePdf() {
+    if (!captureRef?.current) {
+      toast.error('Nothing to capture yet.');
+      return;
+    }
+    setExporting(true);
+    try {
+      await exportToPdf({
+        element: captureRef.current,
+        filename,
+        title: chartName,
+      });
+      toast.success('Exported to PDF');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'PDF export failed');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" disabled={exporting}>
           <Download className="mr-1 h-4 w-4" />
-          Export
+          {exporting ? 'Exporting…' : 'Export'}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handleExcel} disabled={exporting}>
+        <DropdownMenuItem onClick={handleExcel} disabled={exporting || chartType === 'kpi'}>
           <FileSpreadsheet className="mr-2 h-4 w-4" />
           Excel (.xlsx)
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handlePdf} disabled={exporting}>
+          <FileText className="mr-2 h-4 w-4" />
+          PDF (.pdf)
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   DndContext,
@@ -32,6 +32,7 @@ import { PropertiesPane } from './PropertiesPane';
 import { FilterPanel } from './FilterPanel';
 import { ExportMenu } from './ExportMenu';
 import { PivotTable } from './PivotTable';
+import { KPICard } from './KPICard';
 import { ColumnTypeBadge } from '@/features/files/ColumnTypeBadge';
 
 interface ParsedFile {
@@ -82,6 +83,7 @@ export function ChartBuilderPage() {
   const [config, setConfig] = useState<ChartConfig>({});
   const [activeDragColumn, setActiveDragColumn] = useState<EffectiveColumn | null>(null);
   const [saving, setSaving] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Hydrate state from existing chart once it loads
   useEffect(() => {
@@ -238,6 +240,7 @@ export function ChartBuilderPage() {
               config={config}
               columns={effectiveColumns}
               rows={processedRows}
+              captureRef={canvasRef}
             />
             <Button onClick={handleSave} disabled={saving}>
               <Save className="mr-1 h-4 w-4" />
@@ -258,7 +261,7 @@ export function ChartBuilderPage() {
 
           {/* Middle: canvas */}
           <Card className="flex min-h-[400px] flex-col overflow-hidden p-4">
-            {chartType !== 'pivot' && (
+            {chartType !== 'pivot' && chartType !== 'kpi' && (
               <div className="mb-4 grid grid-cols-2 gap-3">
                 <AxisDropZone
                   id="x"
@@ -275,7 +278,10 @@ export function ChartBuilderPage() {
               </div>
             )}
 
-            <div className="flex-1 overflow-hidden rounded border bg-background">
+            <div
+              ref={canvasRef}
+              className="flex-1 overflow-hidden rounded border bg-background"
+            >
               {chartType === 'pivot' ? (
                 <PivotTable
                   rows={processedRows}
@@ -286,6 +292,13 @@ export function ChartBuilderPage() {
                     aggregation: config.pivotAggregation ?? 'SUM',
                   }}
                   showTotals={config.pivotShowTotals ?? true}
+                />
+              ) : chartType === 'kpi' ? (
+                <KPICard
+                  rows={processedRows}
+                  column={effectiveColumns.find((c) => c.name === config.kpiColumn) ?? null}
+                  aggregation={config.kpiAggregation ?? 'SUM'}
+                  title={config.title || chartName}
                 />
               ) : echartsOption ? (
                 <EChartsChart option={echartsOption} ariaLabel={chartName} />

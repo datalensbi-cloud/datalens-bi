@@ -3,6 +3,7 @@ import type { ChartConfig, ChartType } from '@/types/supabase';
 import type { EffectiveColumn } from './apply-overrides';
 import { aggregate, type AggregationFn } from './aggregations';
 import { applyFilters } from './filters';
+import { bucketDate } from './date-grouping';
 
 /**
  * Color palette — single default for v1. Day 6.5 polish adds a picker.
@@ -91,6 +92,16 @@ export function buildChartOption({
 
   const aggFn: AggregationFn = config.aggregation ?? 'SUM';
 
+  // Apply date grouping if configured: replace each row's X with a bucket label
+  // (e.g. "2024-Q1") so the downstream aggregation collapses them.
+  const groupedRows =
+    config.xGroupBy && xCol.effectiveType === 'date'
+      ? rows.map((row) => {
+          const bucket = bucketDate(row[xCol.name], config.xGroupBy!);
+          return bucket === null ? row : { ...row, [xCol.name]: bucket };
+        })
+      : rows;
+
   const xLabel = config.xAxisLabel ?? xCol.displayName;
   const yLabel = config.yAxisLabel ?? yCol.displayName;
   const title = config.title?.trim() || undefined;
@@ -110,7 +121,7 @@ export function buildChartOption({
   };
 
   if (chartType === 'pie') {
-    const agg = aggregateByX(rows, config.x, config.y, aggFn);
+    const agg = aggregateByX(groupedRows, config.x, config.y, aggFn);
     return {
       ...baseOption,
       grid: undefined,
@@ -149,7 +160,7 @@ export function buildChartOption({
 
   // bar or line (narrowed; pie/scatter/pivot/kpi handled above)
   const barOrLine: 'bar' | 'line' = chartType === 'line' ? 'line' : 'bar';
-  const agg = aggregateByX(rows, config.x, config.y, aggFn);
+  const agg = aggregateByX(groupedRows, config.x, config.y, aggFn);
   return {
     ...baseOption,
     xAxis: {

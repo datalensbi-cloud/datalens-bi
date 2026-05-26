@@ -1,4 +1,4 @@
-import { BarChart3, LineChart, PieChart, ScatterChart, Table2 } from 'lucide-react';
+import { BarChart3, LineChart, PieChart, ScatterChart, Table2, Gauge } from 'lucide-react';
 import type { ChartType } from '@/types/supabase';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ const OPTIONS: Array<{ type: ChartType; label: string; icon: typeof BarChart3 }>
   { type: 'pie', label: 'Pie', icon: PieChart },
   { type: 'scatter', label: 'Scatter', icon: ScatterChart },
   { type: 'pivot', label: 'Pivot', icon: Table2 },
+  { type: 'kpi', label: 'KPI', icon: Gauge },
 ];
 
 interface ChartTypePickerProps {
@@ -17,7 +18,7 @@ interface ChartTypePickerProps {
 
 export function ChartTypePicker({ value, onChange }: ChartTypePickerProps) {
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
       {OPTIONS.map((opt) => {
         const Icon = opt.icon;
         const selected = value === opt.type;
@@ -26,7 +27,7 @@ export function ChartTypePicker({ value, onChange }: ChartTypePickerProps) {
             key={opt.type}
             type="button"
             onClick={() => onChange(opt.type)}
-            aria-pressed={selected}
+            aria-pressed={selected ? 'true' : 'false'}
             className={cn(
               'flex flex-col items-center gap-1 rounded-md border bg-background px-2 py-3 text-xs transition-colors',
               'hover:bg-accent hover:text-accent-foreground',
