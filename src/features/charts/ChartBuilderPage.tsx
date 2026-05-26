@@ -23,11 +23,15 @@ import { downloadParsedJSON } from '@/lib/storage';
 import { detectColumns } from '@/lib/column-types';
 import { applyOverrides, applyNullStrategies, type EffectiveColumn } from '@/lib/apply-overrides';
 import { buildChartOption } from '@/lib/build-chart-option';
-import type { ChartType, ChartConfig } from '@/types/supabase';
+import { applyFilters } from '@/lib/filters';
+import type { ChartType, ChartConfig, FilterCondition } from '@/types/supabase';
 import { EChartsChart } from '@/components/ui/echarts-chart';
 import { ColumnListPane } from './ColumnListPane';
 import { AxisDropZone } from './AxisDropZone';
 import { PropertiesPane } from './PropertiesPane';
+import { FilterPanel } from './FilterPanel';
+import { ExportMenu } from './ExportMenu';
+import { PivotTable } from './PivotTable';
 import { ColumnTypeBadge } from '@/features/files/ColumnTypeBadge';
 
 interface ParsedFile {
@@ -98,8 +102,9 @@ export function ChartBuilderPage() {
 
   const processedRows = useMemo(() => {
     if (!parsed) return [];
-    return applyNullStrategies(parsed.rows, effectiveColumns);
-  }, [parsed, effectiveColumns]);
+    const nullCleaned = applyNullStrategies(parsed.rows, effectiveColumns);
+    return applyFilters(nullCleaned, config.filters ?? []);
+  }, [parsed, effectiveColumns, config.filters]);
 
   const xColumn = config.x ? effectiveColumns.find((c) => c.name === config.x) ?? null : null;
   const yColumn = config.y ? effectiveColumns.find((c) => c.name === config.y) ?? null : null;
@@ -136,9 +141,16 @@ export function ChartBuilderPage() {
       toast.error('Missing user or dataset');
       return;
     }
-    if (!config.x || !config.y) {
-      toast.error('Set both X and Y axes before saving');
-      return;
+    if (chartType === 'pivot') {
+      if (!config.pivotRow || !config.pivotValue) {
+        toast.error('Pivot needs at least a Row and a Value column.');
+        return;
+      }
+    } else if (chartType !== 'kpi') {
+      if (!config.x || !config.y) {
+        toast.error('Set both X and Y axes before saving');
+        return;
+      }
     }
     const name = chartName.trim() || 'Untitled chart';
     setSaving(true);
@@ -211,10 +223,27 @@ export function ChartBuilderPage() {
             <span className="text-sm text-muted-foreground">from</span>
             <span className="text-sm font-medium">{dataset.name}</span>
           </div>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="mr-1 h-4 w-4" />
-            {saving ? 'Saving…' : editing ? 'Save chart' : 'Create chart'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <FilterPanel
+              columns={effectiveColumns}
+              rows={parsed.rows}
+              conditions={config.filters ?? []}
+              onChange={(filters: FilterCondition[]) =>
+                setConfig((c) => ({ ...c, filters: filters.length > 0 ? filters : undefined }))
+              }
+            />
+            <ExportMenu
+              chartName={chartName}
+              chartType={chartType}
+              config={config}
+              columns={effectiveColumns}
+              rows={processedRows}
+            />
+            <Button onClick={handleSave} disabled={saving}>
+              <Save className="mr-1 h-4 w-4" />
+              {saving ? 'Saving…' : editing ? 'Save chart' : 'Create chart'}
+            </Button>
+          </div>
         </div>
 
         {/* 3-pane layout */}
@@ -229,25 +258,36 @@ export function ChartBuilderPage() {
 
           {/* Middle: canvas */}
           <Card className="flex min-h-[400px] flex-col overflow-hidden p-4">
-            {/* Drop zones */}
-            <div className="mb-4 grid grid-cols-2 gap-3">
-              <AxisDropZone
-                id="x"
-                label="X axis"
-                column={xColumn}
-                onClear={() => setConfig((c) => ({ ...c, x: undefined }))}
-              />
-              <AxisDropZone
-                id="y"
-                label="Y axis"
-                column={yColumn}
-                onClear={() => setConfig((c) => ({ ...c, y: undefined }))}
-              />
-            </div>
+            {chartType !== 'pivot' && (
+              <div className="mb-4 grid grid-cols-2 gap-3">
+                <AxisDropZone
+                  id="x"
+                  label="X axis"
+                  column={xColumn}
+                  onClear={() => setConfig((c) => ({ ...c, x: undefined }))}
+                />
+                <AxisDropZone
+                  id="y"
+                  label="Y axis"
+                  column={yColumn}
+                  onClear={() => setConfig((c) => ({ ...c, y: undefined }))}
+                />
+              </div>
+            )}
 
-            {/* Chart */}
             <div className="flex-1 overflow-hidden rounded border bg-background">
-              {echartsOption ? (
+              {chartType === 'pivot' ? (
+                <PivotTable
+                  rows={processedRows}
+                  config={{
+                    rowField: config.pivotRow,
+                    colField: config.pivotCol,
+                    valueField: config.pivotValue,
+                    aggregation: config.pivotAggregation ?? 'SUM',
+                  }}
+                  showTotals={config.pivotShowTotals ?? true}
+                />
+              ) : echartsOption ? (
                 <EChartsChart option={echartsOption} ariaLabel={chartName} />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
@@ -267,6 +307,7 @@ export function ChartBuilderPage() {
               onChartTypeChange={setChartType}
               config={config}
               onConfigChange={setConfig}
+              columns={effectiveColumns}
             />
           </Card>
         </div>

@@ -1,6 +1,8 @@
 import type { EChartsOption } from 'echarts';
 import type { ChartConfig, ChartType } from '@/types/supabase';
 import type { EffectiveColumn } from './apply-overrides';
+import { aggregate, type AggregationFn } from './aggregations';
+import { applyFilters } from './filters';
 
 /**
  * Color palette — single default for v1. Day 6.5 polish adds a picker.
@@ -37,23 +39,26 @@ function formatLabel(value: unknown): string {
 }
 
 /**
- * Aggregate rows by X column → sum of Y values.
- * Day 9 adds AVG/COUNT/MIN/MAX selectable per chart.
+ * Aggregate rows by X column using the chosen aggregation function.
+ * Uses the lib/aggregations engine so all chart types share one path.
  */
 function aggregateByX(
   rows: Record<string, unknown>[],
   xCol: string,
-  yCol: string
+  yCol: string,
+  fn: AggregationFn
 ): Array<{ x: string; y: number }> {
-  const sums = new Map<string, number>();
+  const buckets = new Map<string, unknown[]>();
   for (const row of rows) {
-    const xRaw = row[xCol];
-    const yNum = parseNumber(row[yCol]);
-    if (yNum === null) continue;
-    const xKey = formatLabel(xRaw);
-    sums.set(xKey, (sums.get(xKey) ?? 0) + yNum);
+    const xKey = formatLabel(row[xCol]);
+    const list = buckets.get(xKey);
+    if (list) list.push(row[yCol]);
+    else buckets.set(xKey, [row[yCol]]);
   }
-  return Array.from(sums.entries()).map(([x, y]) => ({ x, y }));
+  return Array.from(buckets.entries()).map(([x, values]) => ({
+    x,
+    y: aggregate(values, fn),
+  }));
 }
 
 interface BuildOptionParams {
@@ -71,13 +76,20 @@ export function buildChartOption({
   chartType,
   config,
   columns,
-  rows,
+  rows: rawRows,
 }: BuildOptionParams): EChartsOption | null {
+  // Pivot and KPI render via dedicated components, not ECharts.
+  if (chartType === 'pivot' || chartType === 'kpi') return null;
   if (!config.x || !config.y) return null;
+
+  // Apply chart-level filters before aggregation
+  const rows = applyFilters(rawRows, config.filters ?? []);
 
   const xCol = columns.find((c) => c.name === config.x);
   const yCol = columns.find((c) => c.name === config.y);
   if (!xCol || !yCol) return null;
+
+  const aggFn: AggregationFn = config.aggregation ?? 'SUM';
 
   const xLabel = config.xAxisLabel ?? xCol.displayName;
   const yLabel = config.yAxisLabel ?? yCol.displayName;
@@ -98,7 +110,7 @@ export function buildChartOption({
   };
 
   if (chartType === 'pie') {
-    const agg = aggregateByX(rows, config.x, config.y);
+    const agg = aggregateByX(rows, config.x, config.y, aggFn);
     return {
       ...baseOption,
       grid: undefined,
@@ -135,8 +147,9 @@ export function buildChartOption({
     };
   }
 
-  // bar or line
-  const agg = aggregateByX(rows, config.x, config.y);
+  // bar or line (narrowed; pie/scatter/pivot/kpi handled above)
+  const barOrLine: 'bar' | 'line' = chartType === 'line' ? 'line' : 'bar';
+  const agg = aggregateByX(rows, config.x, config.y, aggFn);
   return {
     ...baseOption,
     xAxis: {
@@ -155,10 +168,10 @@ export function buildChartOption({
     },
     series: [
       {
-        type: chartType,
+        type: barOrLine,
         data: agg.map((d) => d.y),
-        smooth: chartType === 'line',
-        showSymbol: chartType === 'line',
+        smooth: barOrLine === 'line',
+        showSymbol: barOrLine === 'line',
       },
     ],
   };

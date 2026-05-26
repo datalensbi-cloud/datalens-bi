@@ -22,20 +22,52 @@ export interface ColumnOverride {
 /** Map keyed by original column name. */
 export type ColumnOverrides = Record<string, ColumnOverride>;
 
-/** Supported chart types — extended over Days 7-11. */
-export type ChartType = 'bar' | 'line' | 'pie' | 'scatter';
+/** Supported chart types — Phase 1: bar/line/pie/scatter. Phase 2: pivot, kpi. */
+export type ChartType = 'bar' | 'line' | 'pie' | 'scatter' | 'pivot' | 'kpi';
 
-/** Chart configuration — schema-less JSONB. Knobs added across Days 7-11. */
+/** Aggregation function applied to Y/value columns. */
+export type AggregationFn = 'SUM' | 'AVG' | 'COUNT' | 'COUNT_DISTINCT' | 'MIN' | 'MAX';
+
+/** Filter operators — see lib/filters.ts for semantics. */
+export type FilterOp =
+  | 'in'
+  | 'between'
+  | 'date_between'
+  | 'contains'
+  | 'is_null'
+  | 'is_not_null';
+
+export interface FilterCondition {
+  column: string;
+  op: FilterOp;
+  value?: unknown;
+}
+
+/** Chart configuration — schema-less JSONB. Knobs accumulate across phases. */
 export interface ChartConfig {
-  /** Column name from the dataset to use as X axis */
+  // Bar / Line / Pie / Scatter
   x?: string;
-  /** Column name from the dataset to use as Y axis (single Y for v1; Day 10 adds multi-Y) */
   y?: string;
-  /** Chart title shown above the rendering */
+  /** Aggregation applied to Y when X has duplicate values. Default: SUM. */
+  aggregation?: AggregationFn;
+
+  // Pivot
+  pivotRow?: string;
+  pivotCol?: string;
+  pivotValue?: string;
+  pivotAggregation?: AggregationFn;
+  pivotShowTotals?: boolean;
+
+  // KPI (Sprint 2)
+  kpiColumn?: string;
+  kpiAggregation?: AggregationFn;
+
+  // Universal — apply across chart types
+  filters?: FilterCondition[];
+
+  // Display
   title?: string;
-  /** Optional X-axis label override (default: column name) */
   xAxisLabel?: string;
-  /** Optional Y-axis label override (default: column name) */
   yAxisLabel?: string;
 }
 

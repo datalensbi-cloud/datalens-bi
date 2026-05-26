@@ -51,11 +51,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { Chart, ChartType } from '@/types/supabase';
 
+import { Table2, Gauge } from 'lucide-react';
+
 const CHART_ICON: Record<ChartType, typeof BarChart3> = {
   bar: BarChart3,
   line: LineChart,
   pie: PieChart,
   scatter: ScatterChart,
+  pivot: Table2,
+  kpi: Gauge,
 };
 
 export function ChartsPage() {
