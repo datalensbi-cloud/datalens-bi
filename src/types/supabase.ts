@@ -46,6 +46,15 @@ export interface FilterCondition {
 /** Date bucketing period for time-series X-axis grouping. */
 export type DateGroupPeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
+/** One cell in a dashboard grid layout. */
+export interface DashboardLayoutItem {
+  chart_id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /** Chart configuration — schema-less JSONB. Knobs accumulate across phases. */
 export interface ChartConfig {
   // Bar / Line / Pie / Scatter
@@ -193,6 +202,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      dashboards: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          layout: DashboardLayoutItem[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          layout?: DashboardLayoutItem[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          description?: string | null;
+          layout?: DashboardLayoutItem[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -203,3 +242,4 @@ export type Database = {
 
 export type Dataset = Database['public']['Tables']['datasets']['Row'];
 export type Chart = Database['public']['Tables']['charts']['Row'];
+export type Dashboard = Database['public']['Tables']['dashboards']['Row'];
